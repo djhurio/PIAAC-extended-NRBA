@@ -16,6 +16,10 @@ theme_set(new = theme_bw())
 rm(list = ls())
 gc()
 
+# Options
+# import_px <- TRUE
+import_px <- FALSE
+
 
 # Function to categorise or recode to N2 format
 categorise <- function(x, n = 100L) {
@@ -160,20 +164,24 @@ rm(dat_apk)
 
 # Merge
 dat_nrba <- merge(
-  x = dat_sdif[, .(CNTRYID, CASEID, PERSID, WEIGHTFLG, GENDER_R, AGE_R)],
+  x = dat_sdif[, .(CNTRYID, CASEID, PERSID, WEIGHTFLG, GENDER_R, AGE_R, REGION)],
   y = dat_sample[, .(CASEID, lon, lat, atvk_2022, apk_kods)],
   by = "CASEID",
   all.x = TRUE,
   sort = FALSE
 ) |> merge(
-  y = dat_bq[, .(PERSID = persid, c2_q07)],
+  y = dat_bq[, .(
+    PERSID = persid,
+    c2_q07, # Labour status
+    b2_q01lv # Education level
+  )],
   by = "PERSID",
   all.x = TRUE,
   sort = FALSE
 ) |> setcolorder(c("CNTRYID", "CASEID", "PERSID"))
 
 dat_nrba
-dat_nrba[, .N, keyby = .(!is.na(PERSID), WEIGHTFLG)]
+dat_nrba[, .N, keyby = .(PERSID = !is.na(PERSID), WEIGHTFLG)]
 
 if (dat_nrba[is.na(lon) | is.na(lat), .N]) stop("Missing lon or lat")
 if (dat_nrba[is.na(atvk_2022), .N]) stop("Missing ATVK")
@@ -218,7 +226,13 @@ codebook_NRBAVAR2 <- make_codebook(
 
 api_url <- "https://data.stat.gov.lv:443/api/v1/en/OSP_PUB/START/IZG/IZ/IZI/IZT041"
 
-api_meta <- pxweb_get(url = api_url)
+if (import_px) {
+  api_meta <- pxweb_get(url = api_url)
+  saveRDS(object = api_meta, file = "data/IZT041-meta.rds")
+} else {
+  api_meta <- readRDS(file = "data/IZT041-meta.rds")
+}
+
 api_meta$title
 length(api_meta$variables)
 
@@ -237,16 +251,21 @@ api_meta$variables[[3]]$values
 api_meta$variables[[4]]$code
 api_meta$variables[[4]]$values
 
-dat_IZT041 <- pxweb_get(
-  url = api_url,
-  query = pxweb_query(x = list(
-    EDUCATION_LEVEL = "*",
-    AREA = grep(pattern = "^LV([0-9]{7}|[A-Z]{3}[0-9]{2})$",
-                x = api_meta$variables[[2]]$values,
-                value = T),
-    ContentsCode = "IZT041",
-    TIME = "2022"))
-)
+if (import_px) {
+  dat_IZT041 <- pxweb_get(
+    url = api_url,
+    query = pxweb_query(x = list(
+      EDUCATION_LEVEL = "*",
+      AREA = grep(pattern = "^LV([0-9]{7}|[A-Z]{3}[0-9]{2})$",
+                  x = api_meta$variables[[2]]$values,
+                  value = T),
+      ContentsCode = "IZT041",
+      TIME = "2022"))
+  )
+  saveRDS(object = dat_IZT041, file = "data/IZT041-data.rds")
+} else {
+  dat_IZT041 <- readRDS(file = "data/IZT041-data.rds")
+}
 
 dat_IZT041$columns
 col_names <- purrr::map_chr(
@@ -365,29 +384,36 @@ codebook_NRBAVAR7 <- make_codebook(
 
 # 2. COMPARISON OF WEIGHTED ESTIMATES TO EXTERNAL TOTALS
 # Ekonomiskās aktivitātes statuss anketā: C2_Q07
+# Izglītības līmenis: B2_Q01LV
 
 dat_nrba[, .N, keyby = .(c2_q07)]
 dat_nrba[!c2_q07 %in% 1:10, c2_q07 := NA]
 dat_nrba[, .N, keyby = .(c2_q07)]
 
+dat_nrba[, .N, keyby = .(b2_q01lv)]
+dat_nrba[!b2_q01lv %in% 0:16, b2_q01lv := NA]
+dat_nrba[, .N, keyby = .(b2_q01lv)]
+
 dat_nrba[, .N, keyby = .(
   PERSID = !is.na(PERSID),
   GENDER_R = !is.na(GENDER_R),
   AGE_R = !is.na(AGE_R),
   WEIGHTFLG,
-  c2_q07 = !is.na(c2_q07))]
+  c2_q07 = !is.na(c2_q07),
+  b2_q01lv = !is.na(b2_q01lv))]
 
-dat_nrba[WEIGHTFLG == 0 & !is.na(c2_q07),
+dat_nrba[WEIGHTFLG == 0 & (!is.na(c2_q07) | !is.na(b2_q01lv)),
          .(PERSID, GENDER_R, AGE_R)][order(PERSID)]
 
-dat_nrba[WEIGHTFLG == 0 & !is.na(c2_q07), WEIGHTFLG := 1]
+dat_nrba[WEIGHTFLG == 0 & (!is.na(c2_q07) | !is.na(b2_q01lv)), WEIGHTFLG := 1]
 
 dat_nrba[, .N, keyby = .(
   PERSID = !is.na(PERSID),
   GENDER_R = !is.na(GENDER_R),
   AGE_R = !is.na(AGE_R),
   WEIGHTFLG,
-  c2_q07 = !is.na(c2_q07))]
+  c2_q07 = !is.na(c2_q07),
+  b2_q01lv = !is.na(b2_q01lv))]
 
 # set.seed(215526)
 # dat_imp1 <- VIM::hotdeck(
@@ -407,19 +433,21 @@ dat_nrba[, .N, keyby = .(
 
 set.seed(215526)
 dat_imp <- VIM::hotdeck(
-  data = dat_nrba[WEIGHTFLG == 1, .(PERSID, GENDER_R, AGE_R, c2_q07)],
-  variable = "c2_q07",
-  domain_var = c("GENDER_R", "AGE_R")
+  data = dat_nrba[WEIGHTFLG == 1,
+                  .(PERSID, REGION, GENDER_R, AGE_R, c2_q07, b2_q01lv)],
+  variable = c("c2_q07", "b2_q01lv"),
+  domain_var = c("REGION", "GENDER_R", "AGE_R")
 )
 
 dat_imp
-dat_imp[, .N, keyby = .(c2_q07_imp)]
+dat_imp[, .N, keyby = .(c2_q07_imp, b2_q01lv_imp)]
 
 dat_nrba[, c2_q07 := NULL]
+dat_nrba[, b2_q01lv := NULL]
 
 dat_nrba <- merge(
   x = dat_nrba,
-  y = dat_imp[, .(PERSID, c2_q07, c2_q07_imp)],
+  y = dat_imp[, .(PERSID, c2_q07, c2_q07_imp, b2_q01lv, b2_q01lv_imp)],
   by = "PERSID",
   all.x = TRUE,
   sort = FALSE
@@ -428,7 +456,12 @@ dat_nrba <- merge(
 dat_nrba
 
 dat_nrba[, .N, keyby = .(WEIGHTFLG, c2_q07)]
-dat_nrba[, .N, keyby = .(WEIGHTFLG, c2_q07, c2_q07_imp)]
+dat_nrba[, .N, keyby = .(WEIGHTFLG, c2_q07_imp)]
+dat_nrba[WEIGHTFLG == 1L, .N, keyby = .(c2_q07_imp)][, P := prop.table(N)][]
+
+dat_nrba[, .N, keyby = .(WEIGHTFLG, b2_q01lv)]
+dat_nrba[, .N, keyby = .(WEIGHTFLG, b2_q01lv_imp)]
+dat_nrba[WEIGHTFLG == 1L, .N, keyby = .(b2_q01lv_imp)][, P := prop.table(N)][]
 
 
 # Economic activity
@@ -453,7 +486,11 @@ dat_nrba[, gender := factor(GENDER_R, 1:2, c("Male", "Female"))]
 dat_nrba[, summary(AGE_R)]
 
 if ("agegrp" %in% names(dat_nrba)) dat_nrba[, agegrp := NULL]
-dat_nrba[, agegrp := ifelse(as.integer(ecact) != 2L, as.integer((AGE_R - 6) %/% 10), 6L)]
+dat_nrba[, agegrp := ifelse(
+  test = as.integer(ecact) != 2L,
+  yes = as.integer((AGE_R - 6) %/% 10),
+  no = 6L
+)]
 dat_nrba[, .N, keyby = .(agegrp)]
 
 dat_nrba[, agegrp := factor(
@@ -511,54 +548,132 @@ codebook_NRBAVAR8 <- data.table(
 codebook_NRBAVAR9 <- data.table(
   `NRBA variable` = "NRBAVAR9",
   `NRBA variable label` = paste(label_ecact, "X", label_gender),
-  # `Values` = dat_nrba[, fancy.range(NRBAVAR9)],
   `Value label` = "See the file External_Estimates_Codebook_LVA.xlsx"
 )
 
 codebook_NRBAVAR10 <- data.table(
   `NRBA variable` = "NRBAVAR10",
   `NRBA variable label` = paste(label_ecact, "X", label_agegrp),
-  # `Values` = dat_nrba[, fancy.range(NRBAVAR10)],
   `Value label` = "See the file External_Estimates_Codebook_LVA.xlsx"
 )
 
 codebook_NRBAVAR11 <- data.table(
   `NRBA variable` = "NRBAVAR11",
   `NRBA variable label` = paste(label_ecact, "X", label_gender, "X", label_agegrp),
-  # `Values` = dat_nrba[, fancy.range(NRBAVAR11)],
   `Value label` = "See the file External_Estimates_Codebook_LVA.xlsx"
 )
+
+codebook_ALT_RAKEDIM <- data.table(
+  `NRBA variable` = "ALT_RAKEDIM",
+  `NRBA variable label` = "See the file Alternative_Totals_Codebook_LVA.xlsx"
+)
+
+codebook_NRBAVAR8_ext <- dat_nrba[
+  !is.na(NRBAVAR8),
+  .(NRBAVAR8, `Labour status` = ecact)
+] |> setorder(NRBAVAR8) |> unique()
+
+codebook_NRBAVAR9_ext <- dat_nrba[
+  !is.na(NRBAVAR9),
+  .(NRBAVAR9, `Labour status` = ecact, `Gender` = gender)
+] |> setorder(NRBAVAR9) |> unique()
+
+codebook_NRBAVAR10_ext <- dat_nrba[
+  !is.na(NRBAVAR10),
+  .(NRBAVAR10, `Labour status` = ecact, `Age Group` = agegrp)
+] |> setorder(NRBAVAR10) |> unique()
+
+codebook_NRBAVAR11_ext <- dat_nrba[
+  !is.na(NRBAVAR11),
+  .(NRBAVAR11, `Labour status` = ecact, `Gender` = gender, `Age Group` = agegrp)
+] |> setorder(NRBAVAR11) |> unique()
+
+codebook_NRBAVAR8_ext
+codebook_NRBAVAR9_ext
+codebook_NRBAVAR10_ext
+codebook_NRBAVAR11_ext
+
+
+
+# 4. COMPARISON OF ESTIMATES FROM ALTERNATIVE WEIGHTING ADJUSTMENTS
+
+# Education
+dat_nrba[, .N, keyby = .(WEIGHTFLG, b2_q01lv)]
+dat_nrba[, NRBAVAR12 := b2_q01lv]
+dat_nrba[, .N, keyby = .(WEIGHTFLG, b2_q01lv, NRBAVAR12)]
+
+codebook_NRBAVAR12 <- data.table(
+  `NRBA variable` = "NRBAVAR12",
+  `NRBA variable label` = "Highest education level (B2_Q01LV)",
+  `Values` = dat_nrba[WEIGHTFLG == 1L, sort(unique(NRBAVAR12))],
+  `Value label` = c(
+    "Has not attended school or graduated from primary school",
+    "Primary school education",
+    "Basic vocational education",
+    "Primary education",
+    "General secondary education",
+    "Vocational education after basic education (less than 2 years)",
+    "Vocational education after primary education (2 years or more)",
+    "General secondary education after vocational training",
+    "Vocational secondary education (with the right to study in an institution of higher education)",
+    "Vocational education after general secondary education; it is both vocational education (up to 1 year) and vocational education (1.5-2 years)",
+    "Level 1 professional higher education diploma (college)",
+    "Professional Bachelor's degree",
+    "Bachelor's degree",
+    "Higher education during the USSR",
+    "Professional Master's degree",
+    "Master's degree",
+    "Doctor; habilitated doctor; science candidate (during USSR)"
+  )
+)
+
+
+# Region
+dat_nrba[, .N, keyby = .(REGION)]
+dat_nrba[, NRBAVAR13 := REGION]
+dat_nrba[, .N, keyby = .(REGION, NRBAVAR13)]
+
+codebook_NRBAVAR13 <- data.table(
+  `NRBA variable` = "NRBAVAR13",
+  `NRBA variable label` = "Region (NUTS-3)",
+  `Values` = dat_nrba[WEIGHTFLG == 1, sort(unique(NRBAVAR13))],
+  `Value label` = c(
+    "Rīga",
+    "Pierīga",
+    "Vidzeme",
+    "Kurzeme",
+    "Zemgale",
+    "Latgale"
+  )
+)
+
+
+# ALT_RAKEDIM
+dat_nrba[, ALT_RAKEDIM := NA_integer_]
 
 
 # Save
 names(dat_nrba)
 setorderv(dat_nrba, names(dat_nrba)[1:3])
-openxlsx::write.xlsx(
-  x = dat_nrba[, .SD, .SDcols = patterns("CNTRYID|CASEID|PERSID|NRBAVAR[0-9]+$")],
+write_xlsx(
+  x = dat_nrba[, .SD, .SDcols = patterns(
+    "^(CNTRYID|CASEID|PERSID|NRBAVAR[0-9]+|ALT_RAKEDIM)$"
+  )],
   file = "results/Extended_NRBA_LVA.xlsx",
-  firstRow = TRUE,
-  withFilter = TRUE,
+  sheetName = "Sheet1",
   colWidths = 15,
-  na.string = "",
+  na.strings = "",
   overwrite = TRUE
 )
 
-# openxlsx::write.xlsx(
-#   x = rbindlist(mget(gtools::mixedsort(ls(pattern = "^codebook_NRBAVAR[0-9]+$")))),
-#   file = "results/Extended_NRBA_Codebook_LVA.xlsx",
-#   colWidths = list(c(15, 160, 15, 50)),
-#   overwrite = TRUE
-# )
-
 codebook_NRBAVAR <- rbindlist(
-  mget(gtools::mixedsort(ls(pattern = "^codebook_NRBAVAR[0-9]+$"))),
+  mget(
+    c(gtools::mixedsort(
+      ls(pattern = "^codebook_NRBAVAR[0-9]+$")
+    ), "codebook_ALT_RAKEDIM")
+  ),
   fill = TRUE
 )
-
-# col_widths <- map_int(
-#   .x = names(codebook_NRBAVAR),
-#   .f = \(x) max(nchar(c(x, codebook_NRBAVAR[[x]])), na.rm = TRUE)
-# )
 
 wb_workbook() |>
   wb_add_worksheet(sheet = "Sheet1") |>
@@ -592,3 +707,16 @@ wb_workbook() |>
     heights = 13
   ) |>
   wb_save(file = "results/Extended_NRBA_Codebook_LVA.xlsx")
+
+write_xlsx(
+  x = list(
+    NRBAVAR8  = codebook_NRBAVAR8_ext,
+    NRBAVAR9  = codebook_NRBAVAR9_ext,
+    NRBAVAR10 = codebook_NRBAVAR10_ext,
+    NRBAVAR11 = codebook_NRBAVAR11_ext
+  ),
+  file = "results/External_Estimates_Codebook_LVA.xlsx",
+  colWidths = 20,
+  na.strings = "",
+  overwrite = TRUE
+)

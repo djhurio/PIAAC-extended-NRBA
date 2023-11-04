@@ -1,0 +1,59 @@
+# DSA
+
+## Datu vākšana
+
+<https://stat.gov.lv/lv/metadati/4285-nodarbinatiba-un-bezdarbs/det>
+
+> DSA no 2002. līdz 2006. gadam izlasē iekļauti 10 296 mājokļi gadā, no 2007. līdz 2012. gadam – 24 128 mājokļi gadā, 2013. gadā – 26 676 mājokļi gadā, 2014. gadā – 29 588 mājokļi gadā, no 2015. līdz 2020. gadam – 29 952 mājokļi gadā, 2021. gadā – 29 861 mājokļi gadā, 2022. gadā – 29 757 mājokļi gadā un 2023. gadā – 30 381 mājokļi.
+
+``` r
+n <- 30381
+n / 4
+
+m <- 29952
+m / 4
+```
+
+
+## Data collection
+
+<https://stat.gov.lv/en/metadata/4285-employment-and-unemployment/det>
+
+> From 2002 to 2006 – 10 296 dwellings per year, from 2007 to 2012 – 24 128 dwellings per year, in 2013 – 26 676 dwellings per year, in 2014 – 29 588 dwellings per year, starting from 2015 to 2020 – 29 952 dwellings per year, in 2021 – 29 861 dwellings per year,  in 2022 – 29 757 dwellings per year and in 2023 – 30 381 dwellings.
+
+
+## Education
+
+sākumskolas izglītība
+profesionālā pamatizglītība
+pamatizglītība
+vispārējā vidējā izglītība
+arodizglītība pēc pamatizglītības (mazāk par 2 gadiem)
+arodizglītība pēc pamatizglītības (2 gadi vai ilgāk)
+vispārējā vidējā izglītība pēc arodizglītības
+profesionālā vidējā izglītība (ar tiesībām studēt augstskolā)
+profesionālā izglītība pēc vispārējās vidējās izglītības; tā ir gan arodizglītība (līdz 1 gadam), gan profesionālā izglītība (1,5-2 gadi)
+1. līmeņa profesionālās augstākās izglītības diploms (koledža)
+profesionālā bakalaura grāds
+bakalaura grāds
+augstākā izglītība PSRS laikā
+profesionālā maģistra grāds
+maģistra grāds
+doktors; habilitētais doktors; zinātņu kandidāts (PSRS laikā)
+
+"primary school education",
+"basic vocational education",
+"primary education",
+"General secondary education",
+"vocational education after basic education (less than 2 years)",
+"vocational education after primary education (2 years or more)",
+"general secondary education after vocational training",
+"vocational secondary education (with the right to study in an institution of higher education)",
+"vocational education after general secondary education; it is both vocational education (up to 1 year) and vocational education (1.5-2 years)",
+"level 1 professional higher education diploma (college)",
+"professional Bachelor's degree",
+"bachelor's degree",
+"higher education during the USSR",
+"professional Master's degree",
+"master's degree",
+"doctor; habilitated doctor; Science candidate (during USSR)"

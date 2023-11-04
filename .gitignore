@@ -3,5 +3,6 @@
 .RData
 .Ruserdata
 
-*.xlsx
-*.docx
+*.xls*
+*.doc*
+*.rds
