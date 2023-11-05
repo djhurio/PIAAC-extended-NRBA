@@ -24,6 +24,7 @@ m / 4
 
 ## Education
 
+nav apmeklējis skolu vai nav pabeidzis sākumskolu
 sākumskolas izglītība
 profesionālā pamatizglītība
 pamatizglītība
@@ -41,19 +42,20 @@ profesionālā maģistra grāds
 maģistra grāds
 doktors; habilitētais doktors; zinātņu kandidāts (PSRS laikā)
 
-"primary school education",
-"basic vocational education",
-"primary education",
-"General secondary education",
-"vocational education after basic education (less than 2 years)",
-"vocational education after primary education (2 years or more)",
-"general secondary education after vocational training",
-"vocational secondary education (with the right to study in an institution of higher education)",
-"vocational education after general secondary education; it is both vocational education (up to 1 year) and vocational education (1.5-2 years)",
-"level 1 professional higher education diploma (college)",
-"professional Bachelor's degree",
-"bachelor's degree",
-"higher education during the USSR",
-"professional Master's degree",
-"master's degree",
-"doctor; habilitated doctor; Science candidate (during USSR)"
+Has not attended school or graduated from primary school
+Primary school education
+Basic vocational education
+Primary education
+General secondary education
+Vocational education after basic education (less than 2 years)
+Vocational education after primary education (2 years or more)
+General secondary education after vocational training
+Vocational secondary education (with the right to study in an institution of higher education)
+Vocational education after general secondary education; it is both vocational education (up to 1 year) and vocational education (1.5-2 years)
+Level 1 professional higher education diploma (college)
+Professional Bachelor's degree
+Bachelor's degree
+Higher education during the USSR
+Professional Master's degree
+Master's degree
+Doctor; habilitated doctor; science candidate (during USSR)

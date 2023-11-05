@@ -164,7 +164,8 @@ rm(dat_apk)
 
 # Merge
 dat_nrba <- merge(
-  x = dat_sdif[, .(CNTRYID, CASEID, PERSID, WEIGHTFLG, GENDER_R, AGE_R, REGION)],
+  x = dat_sdif[, .(CNTRYID, CASEID, PERSID, WEIGHTFLG, GENDER_R, AGE_R, REGION,
+                   PERSVAR1)],
   y = dat_sample[, .(CASEID, lon, lat, atvk_2022, apk_kods)],
   by = "CASEID",
   all.x = TRUE,
@@ -594,7 +595,6 @@ codebook_NRBAVAR10_ext
 codebook_NRBAVAR11_ext
 
 
-
 # 4. COMPARISON OF ESTIMATES FROM ALTERNATIVE WEIGHTING ADJUSTMENTS
 
 # Education
@@ -646,6 +646,48 @@ codebook_NRBAVAR13 <- data.table(
     "Latgale"
   )
 )
+
+
+
+# 5. ANALYSIS OF VARIABLES COLLECTED DURING DATA COLLECTION
+
+dat_nrba[!is.na(PERSID), .N, keyby = .(GENDER_R)]
+dat_nrba[!is.na(PERSID), .N, keyby = .(AGE_R)]
+dat_nrba[!is.na(PERSID), .N, keyby = .(PERSVAR1)]
+
+dat_nrba[, NRBAVAR14 := GENDER_R]
+dat_nrba[, NRBAVAR15 := AGE_R]
+dat_nrba[, NRBAVAR16 := PERSVAR1]
+
+codebook_NRBAVAR14 <- data.table(
+  `NRBA variable` = "NRBAVAR14",
+  `NRBA variable label` = "Gender",
+  `Values` = dat_nrba[!is.na(PERSID), sort(unique(NRBAVAR14))],
+  `Value label` = c(
+    "Male",
+    "Female"
+  )
+)
+
+codebook_NRBAVAR15 <- data.table(
+  `NRBA variable` = "NRBAVAR15",
+  `NRBA variable label` = "Age",
+  `Values` = dat_nrba[!is.na(PERSID), sort(unique(NRBAVAR15))],
+  `Value label` = dat_nrba[!is.na(PERSID), paste(sort(unique(NRBAVAR15)), "years")]
+)
+
+codebook_NRBAVAR16 <- data.table(
+  `NRBA variable` = "NRBAVAR16",
+  `NRBA variable label` = "Highest education level collected from Screener",
+  `Values` = dat_nrba[!is.na(PERSID), sort(unique(NRBAVAR16))],
+  `Value label` = c(
+    "Primary education or lower",
+    "Secondary education",
+    "Higher education"
+  )
+)
+
+
 
 
 # ALT_RAKEDIM
