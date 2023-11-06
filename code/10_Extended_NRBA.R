@@ -691,7 +691,40 @@ codebook_NRBAVAR16 <- data.table(
 
 
 # ALT_RAKEDIM
-dat_nrba[, ALT_RAKEDIM := NA_integer_]
+
+dat_nrba[, .N, keyby = .(
+  WEIGHTFLG,
+  GENDER_R = !is.na(GENDER_R),
+  AGE_R = !is.na(AGE_R),
+  b2_q01lv
+)]
+
+# Recode b2_q01lv to ISCED
+# dat_nrba[, edu_ISCED := NULL]
+dat_nrba[
+  WEIGHTFLG == 1L,
+  edu_ISCED := car::recode(
+    var = b2_q01lv,
+    recodes = "0:1='0-1'; 2:3=2; 4:8=3; 9=4; 10=5; 11:12=6; 13:16='7-8';"
+  )
+]
+
+dat_nrba[WEIGHTFLG == 1L, .N, keyby = .(b2_q01lv, edu_ISCED)]
+dat_nrba[WEIGHTFLG == 1L, .N, keyby = .(edu_ISCED)]
+dat_nrba[WEIGHTFLG == 1L, .N, keyby = .(gender, edu_ISCED)]
+
+setorder(dat_nrba, gender, edu_ISCED)
+dat_nrba[WEIGHTFLG == 1L, ALT_RAKEDIM := .GRP, by = .(gender, edu_ISCED)]
+setorderv(dat_nrba, names(dat_nrba)[1:3])
+
+dat_nrba[WEIGHTFLG == 1L, .N, keyby = .(ALT_RAKEDIM, gender, edu_ISCED)]
+
+codebook_ALT_RAKEDIM_ext <- unique(
+  dat_nrba[WEIGHTFLG == 1L, .(ALT_RAKEDIM, gender, edu_ISCED)]
+) |> setorder()
+codebook_ALT_RAKEDIM_ext
+
+
 
 
 # Save
@@ -758,6 +791,16 @@ write_xlsx(
     NRBAVAR11 = codebook_NRBAVAR11_ext
   ),
   file = "results/External_Estimates_Codebook_LVA.xlsx",
+  colWidths = 20,
+  na.strings = "",
+  overwrite = TRUE
+)
+
+write_xlsx(
+  x = list(
+    ALT_RAKEDIM = codebook_ALT_RAKEDIM_ext
+  ),
+  file = "results/Alternative_Totals_Codebook_LVA.xlsx",
   colWidths = 20,
   na.strings = "",
   overwrite = TRUE
