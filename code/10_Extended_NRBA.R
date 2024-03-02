@@ -192,8 +192,8 @@ ggplot(data = dat_nrba,
   geom_point(size = 1) +
   theme(legend.position = "none")
 
-dat_nrba[, NRBAVAR1 := categorise(lon)]
-dat_nrba[, NRBAVAR2 := categorise(lat)]
+dat_nrba[, NRBAVAR1 := categorise(lon, n = 10)]
+dat_nrba[, NRBAVAR2 := categorise(lat, n = 10)]
 
 dat_nrba[, .(prettyRange(lon)), keyby = .(NRBAVAR1)]
 dat_nrba[, .(prettyRange(lat)), keyby = .(NRBAVAR2)]
@@ -334,11 +334,11 @@ dat_nrba[, as.list(summary(NRBAVAR5_val))]
 dat_nrba[, as.list(summary(NRBAVAR6_val))]
 dat_nrba[, as.list(summary(NRBAVAR7_val))]
 
-dat_nrba[, NRBAVAR3 := categorise(NRBAVAR3_val)]
-dat_nrba[, NRBAVAR4 := categorise(NRBAVAR4_val)]
-dat_nrba[, NRBAVAR5 := categorise(NRBAVAR5_val)]
-dat_nrba[, NRBAVAR6 := categorise(NRBAVAR6_val)]
-dat_nrba[, NRBAVAR7 := categorise(NRBAVAR7_val)]
+dat_nrba[, NRBAVAR3 := categorise(NRBAVAR3_val, n = 10)]
+dat_nrba[, NRBAVAR4 := categorise(NRBAVAR4_val, n = 10)]
+dat_nrba[, NRBAVAR5 := categorise(NRBAVAR5_val, n = 10)]
+dat_nrba[, NRBAVAR6 := categorise(NRBAVAR6_val, n = 10)]
+dat_nrba[, NRBAVAR7 := categorise(NRBAVAR7_val, n = 10)]
 
 dat_nrba[, .N, keyby = .(NRBAVAR3)][, P := round(prop.table(N), 3)][]
 dat_nrba[, .N, keyby = .(NRBAVAR4)][, P := round(prop.table(N), 3)][]
@@ -656,7 +656,14 @@ dat_nrba[!is.na(PERSID), .N, keyby = .(AGE_R)]
 dat_nrba[!is.na(PERSID), .N, keyby = .(PERSVAR1)]
 
 dat_nrba[, NRBAVAR14 := GENDER_R]
-dat_nrba[, NRBAVAR15 := AGE_R]
+
+dat_nrba[, NRBAVAR15 := categorise(AGE_R, n = 10)]
+dat_nrba[
+  !is.na(PERSID),
+  .(min = min(AGE_R), max = max(AGE_R), label = fancy.range(AGE_R), .N),
+  keyby = .(NRBAVAR15)
+]
+
 dat_nrba[, NRBAVAR16 := PERSVAR1]
 
 codebook_NRBAVAR14 <- data.table(
@@ -671,9 +678,13 @@ codebook_NRBAVAR14 <- data.table(
 
 codebook_NRBAVAR15 <- data.table(
   `NRBA variable` = "NRBAVAR15",
-  `NRBA variable label` = "Age",
+  `NRBA variable label` = "Age group",
   `Values` = dat_nrba[!is.na(PERSID), sort(unique(NRBAVAR15))],
-  `Value label` = dat_nrba[!is.na(PERSID), paste(sort(unique(NRBAVAR15)), "years")]
+  `Value label` = dat_nrba[
+    !is.na(PERSID),
+    paste(fancy.range(AGE_R), "years"),
+    keyby = .(NRBAVAR15)
+  ]$V1
 )
 
 codebook_NRBAVAR16 <- data.table(
