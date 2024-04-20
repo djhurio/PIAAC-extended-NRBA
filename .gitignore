@@ -5,5 +5,9 @@
 
 *.xls*
 *.doc*
+*.pdf
+
 *.rds
+*.sas7bdat
+
 *.zip
