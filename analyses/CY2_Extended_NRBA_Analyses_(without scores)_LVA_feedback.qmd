@@ -1,0 +1,170 @@
+---
+title: "Feedback on Extended NRBA Analyses (without scores) LVA"
+author: "Mārtiņš Liberts (LVA)"
+format: pdf
+---
+
+## Introduction
+
+This is a feedback on the "[Extended NRBA Analyses (without scores) LVA](https://piaac.ets.org/portal/extended-nrba-analyses-without-scores-lva/)" conducted by the Consortium.
+
+## ANALYSIS 1: Estimates Before and After Weighting
+
+### Comments by the Consorcium
+
+Notes: 
+
+- A t-test is used for this analysis. PROBF1 is the resulting p-value from the t-test.
+- Significant differences are those with PROBF1 < Bonferroni Alpha. Bonferroni Alpha is calculated as alpha(0.05)/(number of categories).
+- "Eligible SPs" are all sample persons, excluding ineligible cases (those with DISP_CIBQ=18 or 25).
+- "Respondents" are sampled persons with WEIGHTFLG=1 (that is, with DISP_CIBQ=1 or (DISP_CIBQ=7 and DISP_DS=1)).
+- Cases with missing values for an analysis variable were excluded from the analysis for that variable.
+
+Significant differences between the base-weighted estimates and all eligible SPs existed for all variables in the analysis except Number of declared residents aged 16-65 and Indicator if a child (aged 0-14) is in a household.
+
+In general, the differences in the estimates are smaller after the nonresponse adjustment, indicating that the BQ nonresponse adjustment was effective in reducing the nonresponse bias in these estimates. Significant differences remain in Household size from Screener, Share of one person households by JURISDICTION and cities, and Unemployment level in age group 15-64 by JURISDICTION and cities. Significant differences in very small categories (<1% of total) of Share of population aged 15 and over with upper secondary education or higher (ISCED 3-8) by cities, towns, rural territories and neighbourhoods, Share of owner occupied dwellings by JURISDICTION-2021 and neighbourhoods, Share of occupied dwellings by JURISDICTION-2021 and neighbourhoods, and Share of citizens of Latvia by cities, towns, rural territories and neighbourhoods should be interpreted with caution. Working status, age, education, and region were used in calibration, which would have addressed the remaining bias in these variables.
+
+
+### Comments by LVA
+
+I was able to reproduce most of the results. I got some differences in p-values (columns "PROBF1 (1) v (2)" and "PROBF1 (1) v (3)"):
+
+```
+                           variable                                   V1
+                             <fctr>                               <char>
+1: Base Weight All Eligible SPs (1)                                 TRUE
+2:      Base Weight Respondents (2)                                 TRUE
+3:    NR Adj Weight Respondents (3)                                 TRUE
+4:                 PROBF1 (1) v (2)  Mean relative difference: 0.1293481
+5:                 PROBF1 (1) v (3) Mean relative difference: 0.05842444
+6:                 Bonferroni Alpha                                 TRUE
+```
+
+The column `value.orig` refers to the values calculated by the consorcium and the column `value.test` refers to my calculations.
+
+```
+      VARIABLE VALUE         variable value.orig value.test
+        <char> <num>           <fctr>      <num>      <num>
+ 1:   PERSVAR3    93 PROBF1 (1) v (2)          1     0.0000
+ 2:   PERSVAR3    95 PROBF1 (1) v (2)          1     0.0000
+ 3:   PERSVAR3    93 PROBF1 (1) v (3)          1     0.0030
+ 4: DUVAR_ALL1    24 PROBF1 (1) v (2)          1     0.3115
+ 5: DUVAR_ALL2    22 PROBF1 (1) v (2)          1     0.3115
+ 6: DUVAR_ALL1    16 PROBF1 (1) v (2)          1     0.3159
+ 7: DUVAR_ALL2    11 PROBF1 (1) v (2)          1     0.3159
+ 8:   PERSVAR2     9 PROBF1 (1) v (2)          1     0.3173
+ 9:   PERSVAR2    28 PROBF1 (1) v (2)          1     0.3205
+10:   PERSVAR2    28 PROBF1 (1) v (3)          1     0.3205
+```
+
+Another example:
+
+```
+    VARIABLE VALUE         variable value.orig value.test
+      <char> <num>           <fctr>      <num>      <num>
+ 1: PERSVAR5    99 PROBF1 (1) v (3)     0.5548     0.3193
+ 2: PERSVAR2    52 PROBF1 (1) v (3)     0.5807     0.4655
+ 3: PERSVAR5    99 PROBF1 (1) v (2)     0.8424     0.7705
+ 4: NRBAVAR3     2 PROBF1 (1) v (3)     0.6441     0.5997
+ 5: PERSVAR4    28 PROBF1 (1) v (2)     0.3064     0.2665
+ 6: AREAVAR5    45 PROBF1 (1) v (3)     0.1680     0.1333
+ 7: NRBAVAR1     9 PROBF1 (1) v (3)     0.4557     0.4218
+ 8: PERSVAR4    28 PROBF1 (1) v (3)     0.0496     0.0176
+ 9: PERSVAR2    52 PROBF1 (1) v (2)     0.3218     0.2928
+10: PERSVAR3    55 PROBF1 (1) v (3)     0.2145     0.1879
+```
+
+The differences in the p-values does not influence your conclusions. I agree with them.
+
+## ANALYSIS 2: Comparison to External Estimates
+
+### Comments by the Consorcium
+
+Notes: 
+
+- TESTPCT is the external source estimate. Variances for percentages were derived through linearization of the variance of a ratio using standard errors of the totals provided by the country.
+- The PIAAC final weights were used in this analysis. 
+- The Rao-Scott Chi-square test, along with a t-test, are used for this analysis. Significant differences are those with p-value < 0.05.
+- Cases with missing values for an analysis variable were excluded from the analysis for that variable.
+
+According to the chi-square test, labor status, labor status * gender, labor status * age groups, and labor status * gender * age groups show statistically significant differences in their overall distribution between the Labour Force Survey (LFS) and PIAAC distributions. 
+
+When looking further at the t-test results for individual categories, one can see that significant differences between the PIAAC and LFS estimates are found in less than a half of the categories, which is true for every variable. 
+
+The percent unemployed (both overall and per gender) is significantly higher in PIAAC, but significantly lower for employed males, young (16-25) inactive population,  and employed 46-65 y.o. individuals. However, all of these significant differences are limited to 1-2 percent. LVA’s description explains why differences are expected: 
+
+- The LFS estimates refer to the 1st quarter of 2023. PIAAC fieldwork period covers wider period.
+- Data collection methods for the LFS are CAPI, CATI, and CAWI.
+- The LFS covers population aged 15-89. However, the selected estimates for the NRBA cover the population aged 15-64. Please note there is a one year shift in comparison to the PIAAC target population (aged 16-65). There is a one year shift for all age groups. For example, age group 16-65 in PIAAC is compared with age group 15-64 in LFS, and PIAAC age group 16-25 is compared with age group 15-24 in LFS.
+- Question wording differs, because labour status in the LFS is measured with many specific questions. Labour status is one of the main LFS measures. So, it is measured very precisely. On contrary labour status for the PIAAC is only a proxy variable and it is measured with only one question (C2_Q07). Obviously the labour status measures will differ in LFS and PIAAC because of this."
+
+### Comments by LVA
+
+I am not able to reproduce exactly your results. However I agree with your comments.
+
+```
+           variable                                     V1
+             <fctr>                                 <char>
+ 1: Unweighted FREQ                                   TRUE
+ 2:   Weighted FREQ                                   TRUE
+ 3:         PERCENT Mean relative difference: 2.684324e-06
+ 4:          STDERR   Mean relative difference: 0.00343247
+ 5:         LOWERCL  Mean relative difference: 0.001250854
+ 6:         UPPERCL   Mean relative difference: 0.00110179
+ 7:         TESTPCT Mean relative difference: 0.0002308646
+ 8:          TESTSE   Mean relative difference: 0.04114762
+ 9:        TESTLOCL  Mean relative difference: 0.001456741
+10:        TESTUPLC  Mean relative difference: 0.001373628
+11:            DIFF  Mean relative difference: 0.003196745
+12:            TVAL  Mean relative difference: 0.008600212
+13:          PROB_T   Mean relative difference: 0.02150802
+```
+
+
+## ANALYSIS 5: BQ LRNR compared to other BQ NR
+
+### Comments by the Consorcium
+
+Notes: 
+
+- BQ LRNR cases are those with `DISP_CIBQ=7, 8 or 9`.
+- Other BQ NR cases are those with `DISP_CIBQ not in (1, 7, 8, 9, 18, 25)`.
+- Person base weights were used in this analysis. 
+- The Rao-Scott Chi-square test is used for this analysis. Significant differences are those with p-value < 0.05.
+- Most variables (NRBAVAR1-NRBAVAR7, Age group, DUVAR_SCRRESP1, PERSVAR2-PERSVAR5) were excluded from this analysis due to empty cells.
+- Cases with missing values for an analysis variable were excluded from the analysis for that variable.
+
+Compared to other nonrespondents at the BQ stage, the literacy-related nonrespondents (`DISP_CIBQ = 7, 8, or 9`) are **similar** to other BQ nonrespondents based on age group, gender, highest education level, Indicator if a child (aged 0-14) is in a household, urban/rural, and cities/towns/rural.
+
+### Comments by LVA
+
+I do not agree with your conclusion here. We can conclude there is not enough evidence (test power) to reject null hypothesis (H0). That does not imply H0 is true. The main reason for this is the fact there are **only 24 LRNR cases**. I do not agree we can conclude the LRNR cases are similar with other nonrespondents using the provided information.
+
+The following plot shows that it is hard to conclude anything about similarities of the two groups.
+
+![](plot3.pdf)
+
+## ANALYSIS 5: SCR LRNR compared to other SCR NR
+
+### Comments by the Consorcium
+
+Notes: 
+
+- Screener LRNR cases are those with `DISP_SCR=7`.
+- Other Screener NR cases are those with `DISP_SCR not in (1, 2, 7, 19, 22, 26, 27, 28)`.
+- Household unknown eligibility weights were used in this analysis. 
+- The Rao-Scott Chi-square test is used for this analysis. Significant differences are those with p-value < 0.05.
+- Most variables were excluded from this analysis due to empty cells.
+- Cases with missing values for an analysis variable were excluded from the analysis for that variable.
+
+Compared to other nonrespondents at the screener stage, the literacy-related nonrespondents (`DISP_SCR = 7`) are **similar** to other screener nonrespondents based on urban/rural and the percentages in cities, towns, suburbs and rural area. 
+
+Given that there are **no unexpected patterns**, the analysis does not raise concerns about the assignment of literacy-related disposition codes or the treatment of LRNR cases in weighting.
+
+### Comments by LVA
+
+Similar comment as before. I do not agree with your conclusion here. Not rejecting null hypothesis (H0) does not imply H0 is true. The main reason for this is the fact there are **only 18 LRNR cases**. I do not agree we can conclude the LRNR cases are similar with other nonrespondents using the provided information.
+
+The following plot shows that it is hard to conclude anything about similarities of the two groups.
+
+![](plot4.pdf)
