@@ -36,6 +36,7 @@ names(dat_wif)
 dat_nrba <- openxlsx2::read_xlsx(
   file = "results/Extended_NRBA_LVA.xlsx"
 ) |> setDT(key = c("CNTRYID", "CASEID", "PERSID")) |> setcolorder()
+names(dat_nrba)
 
 
 ### External_Estimates_LVA
@@ -148,11 +149,9 @@ t_test_vs_external_estimate(
   y_var = "NRBAVAR8",
   ext_ests = ext_ests[["NRBAVAR8"]],
   ext_std_errors = ext_std_errors[["NRBAVAR8"]]
-) |> setDT()
+) |> as.data.table()
 
-
-
-
+da_resp[, .(NRBAVAR8)]
 
 analysis_2 <- function(x, alpha = 0.05) {
   
@@ -216,15 +215,22 @@ tab_analysis_2_test <- map(
   id.vars = c("VARIABLE", "VALUE")
 )
 
+tab_analysis_2_test[, VALUE := as.integer(VALUE)]
+
+
 tab_analysis_2_orig <- openxlsx2::read_xlsx(
   file = "analyses/CY2_Extended_NRBA_Analyses_(without scores)_LVA.xlsx",
   sheet = 2,
   start_row = 3,
-  cols = 1:16
+  cols = 1:16,
+  skip_empty_rows = TRUE
 ) |> setDT() |> melt.data.table(
   id.vars = c("VARIABLE", "LABEL", "VALUE"),
   na.rm = TRUE
 )
+
+tab_analysis_2_orig[, VALUE := as.integer(VALUE)]
+
 
 tab_analysis_2 <- merge(
   x = tab_analysis_2_orig,
@@ -267,6 +273,8 @@ tab_analysis_2[, diff := value.orig - value.test]
 
 tab_analysis_2[, map(.SD, class)]
 # tab_analysis_1_test_diff[, VALUE := factor(VALUE)]
+
+setorder(tab_analysis_2, VARIABLE, variable, VALUE)
 
 openxlsx::write.xlsx(
   x = tab_analysis_2,
