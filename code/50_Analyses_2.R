@@ -4,6 +4,7 @@
 
 ## Options
 options(max.print = 10e3)
+options(openxlsx.numFmt = "0.0000")
 
 ## Reset
 rm(list = ls())
@@ -29,34 +30,6 @@ dat_wif <- haven::read_sas(
   data_file = "../PIAAC-data-2023/data-weights/WIF_QCChecks_LVA.sas7bdat"
 ) |> setDT(key = c("CNTRYID", "CASEID", "PERSID")) |> setcolorder()
 names(dat_wif)
-
-# ### SPRWT0
-# dat_sprwt <- haven::read_sas(
-#   data_file = "../PIAAC-data-2023/data-weights/sprwt.sas7bdat"
-# ) |> setDT()
-
-# # hh_repwt
-# # HHUEWT: Screener unknown eligibility adjusted weight
-# dat_hh_repwt <- haven::read_sas(
-#   data_file = "analyses/data/qc_hh_repwt_lva.sas7bdat"
-# ) |> setDT(key = "CASEID") |> setcolorder()
-# names(dat_hh_repwt)
-# # Remove variables overlapping with WIF
-# x <- grep("WT0$", names(dat_hh_repwt), value = TRUE)
-# dat_hh_repwt[, c(x) := NULL]
-# rm(x)
-# 
-# # sp_repwt
-# # SPBWT: Sample person base weight
-# # SPLNRWT: Sample person literacy-related nonresponse adjusted weight
-# dat_sp_repwt <- haven::read_sas(
-#   data_file = "analyses/data/qc_sp_repwt_lva.sas7bdat"
-# ) |> setDT(key = "PERSID") |> setcolorder()
-# names(dat_sp_repwt)
-# # Remove variables overlapping with WIF
-# x <- grep("WT0$", names(dat_sp_repwt), value = TRUE)
-# dat_sp_repwt[, c(x) := NULL]
-# rm(x)
 
 
 ### Extended_NRBA_LVA
@@ -88,21 +61,14 @@ names(dat_ext_est)
 key(dat_sdif)
 key(dat_wif)
 key(dat_nrba)
-# key(dat_hh_repwt)
-# key(dat_sp_repwt)
 
 names(dat_wif)
-# names(dat_hh_repwt)
-# names(dat_sp_repwt)
 
 da <- Reduce(f = merge, x = list(dat_sdif, dat_wif, dat_nrba))
 
 setkeyv(da, key(dat_sdif)) |> setcolorder()
 key(da)
 names(da) |> first(10)
-
-
-# stop()
 
 
 # Age groups
@@ -294,6 +260,20 @@ tab_analysis_2[
 ]
 tab_analysis_2[variable == "PROB_T" & value.orig < 0.05]
 tab_analysis_2[variable == "PROB_T" & value.test < 0.05]
+
+tab_analysis_2[, diff := value.orig - value.test]
+
+# Save
+
+tab_analysis_2[, map(.SD, class)]
+# tab_analysis_1_test_diff[, VALUE := factor(VALUE)]
+
+openxlsx::write.xlsx(
+  x = tab_analysis_2,
+  file = "analyses/LVA_NRBA_ANALYSIS_2_test.xlsx",
+  firstRow = TRUE,
+  colWidths = 20
+)
 
 
 

@@ -29,21 +29,16 @@ dat_wif <- haven::read_sas(
 ) |> setDT(key = c("CNTRYID", "CASEID", "PERSID")) |> setcolorder()
 names(dat_wif)
 
-# ### SPRWT0
-# dat_sprwt <- haven::read_sas(
-#   data_file = "../PIAAC-data-2023/data-weights/sprwt.sas7bdat"
-# ) |> setDT()
-
-# hh_repwt
-# HHUEWT: Screener unknown eligibility adjusted weight
-dat_hh_repwt <- haven::read_sas(
-  data_file = "analyses/data/qc_hh_repwt_lva.sas7bdat"
-) |> setDT(key = "CASEID") |> setcolorder()
-names(dat_hh_repwt)
-# Remove variables overlapping with WIF
-x <- grep("WT0$", names(dat_hh_repwt), value = TRUE)
-dat_hh_repwt[, c(x) := NULL]
-rm(x)
+# # hh_repwt
+# # HHUEWT: Screener unknown eligibility adjusted weight
+# dat_hh_repwt <- haven::read_sas(
+#   data_file = "analyses/data/qc_hh_repwt_lva.sas7bdat"
+# ) |> setDT(key = "CASEID") |> setcolorder()
+# names(dat_hh_repwt)
+# # Remove variables overlapping with WIF
+# x <- grep("WT0$", names(dat_hh_repwt), value = TRUE)
+# dat_hh_repwt[, c(x) := NULL]
+# rm(x)
 
 # sp_repwt
 # SPBWT: Sample person base weight
@@ -87,38 +82,38 @@ dat_nrba <- openxlsx2::read_xlsx(
 ) |> setDT(key = c("CNTRYID", "CASEID", "PERSID")) |> setcolorder()
 
 
-### External_Estimates_LVA
-sheet_names <- openxlsx2::wb_load(
-  file = "results/External_Estimates_LVA.xlsx"
-) |> openxlsx2::wb_get_sheet_names()
-
-dat_ext_est <- purrr::map(
-  .x = sheet_names,
-  .f = \(x) {
-    openxlsx2::read_xlsx(
-      file = "results/External_Estimates_LVA.xlsx",
-      sheet = x
-    )
-  }
-)
-
-length(dat_ext_est)
-names(dat_ext_est)
+# ### External_Estimates_LVA
+# sheet_names <- openxlsx2::wb_load(
+#   file = "results/External_Estimates_LVA.xlsx"
+# ) |> openxlsx2::wb_get_sheet_names()
+# 
+# dat_ext_est <- purrr::map(
+#   .x = sheet_names,
+#   .f = \(x) {
+#     openxlsx2::read_xlsx(
+#       file = "results/External_Estimates_LVA.xlsx",
+#       sheet = x
+#     )
+#   }
+# )
+# 
+# length(dat_ext_est)
+# names(dat_ext_est)
 
 
 ## Combine
 key(dat_sdif)
 key(dat_wif)
 key(dat_nrba)
-key(dat_hh_repwt)
+# key(dat_hh_repwt)
 key(dat_sp_repwt)
 
 names(dat_wif)
-names(dat_hh_repwt)
+# names(dat_hh_repwt)
 names(dat_sp_repwt)
 
 da <- Reduce(f = merge, x = list(dat_sdif, dat_wif, dat_nrba)) |>
-  merge(y = dat_hh_repwt, by = "CASEID") |>
+  # merge(y = dat_hh_repwt, by = "CASEID") |>
   merge(y = dat_sp_repwt, by = "PERSID")
 
 setkeyv(da, key(dat_sdif)) |> setcolorder()
@@ -309,7 +304,7 @@ analysis_1("NRBAVAR2")
 # is.factor(da[["NRBAVAR1"]])
 
 tab_analysis_1_test <- map(
-  .x = x,
+  .x = unique(tab_analysis_1$VARIABLE),
   .f = analysis_1
 ) |> rbindlist()
 
@@ -474,49 +469,3 @@ tab_analysis_1_test[
 # which would have addressed the remaining bias in these variables.
 
 # Correct
-
-
-
-da_finalwt_design <- svrepdesign(
-  data = da_resp,
-  weights = ~SPFWT0,
-  repweights = "SPFWT[1-n]+",
-  type = "Fay",
-  rho = 0.3
-)
-
-prop.table(dat_ext_est$NRBAVAR8$EXTEST)
-
-dat_ext_est$NRBAVAR8$NRBAVAR8
-prop.table(dat_ext_est[["NRBAVAR8"]]$EXTEST)
-
-ext_ests <- map(
-  .x = dat_ext_est,
-  .f = \(x) {
-    y <- x$EXTEST / sum(x$EXTEST)
-    names(y) <- x[[1]]
-    return(y)
-  }
-)
-ext_ests
-
-ext_std_errors <- map(
-  .x = dat_ext_est,
-  .f = \(x) {
-    y <- x$EXTSE / sum(x$EXTEST)
-    names(y) <- x[[1]]
-    return(y)
-  }
-)
-ext_std_errors
-
-t_test_vs_external_estimate(
-  survey_design = da_finalwt_design,
-  y_var = "NRBAVAR8",
-  ext_ests = ext_ests[["NRBAVAR8"]],
-  ext_std_errors = ext_std_errors[["NRBAVAR8"]]
-)
-
-da_resp[, .N]
-da_resp[, .N, keyby = "NRBAVAR8"]
-
