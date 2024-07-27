@@ -5,6 +5,7 @@
 ## Options
 options(max.print = 10e3)
 options(openxlsx.numFmt = "0.0000")
+options(survey.replicates.mse = TRUE)
 
 ## Reset
 rm(list = ls())
@@ -113,6 +114,8 @@ da_resp[
 ][, PERCENT := (prop.table(`Weighted FREQ`) * 100) |> round(2)][]
 
 
+da_resp[, sum(SPFWT0)]
+
 ext_ests <- map(
   .x = dat_ext_est,
   .f = \(x) {
@@ -153,9 +156,22 @@ t_test_vs_external_estimate(
 
 da_resp[, .(NRBAVAR8)]
 
-analysis_2 <- function(x, alpha = 0.05) {
-  
-  z_alpha <- qnorm(1 - alpha / 2)
+# qnorm(p = 1 - 0.05 / 2)
+# survey::degf(da_finalwt_design) - 1
+# qt(p = 1 - 0.05 / 2, df = survey::degf(da_finalwt_design) - 1)
+# qt(p = 1 - 0.05 / 2, df = Inf)
+
+# qt(p = 1 - 0.05 / 2, df = 1000)
+# 
+# df <- 1000
+# x <- qt(p = 1 - 0.05 / 2, df = df)
+# round(x, 6)
+# while(x > 1.9623) {
+#   df <- df + 1L
+#   x <- qt(p = 1 - 0.05 / 2, df = df)
+# }
+
+analysis_2 <- function(x, design = da_finalwt_design, alpha = 0.05) {
   
   tab1 <- da_resp[
     ,
@@ -167,11 +183,13 @@ analysis_2 <- function(x, alpha = 0.05) {
   
   tab2 <- svymean(
     x = ~get(x),
-    design = da_finalwt_design
+    design = design
   ) |> as.data.table()
   
   tab2[, c(names(tab2)) := map(.SD, \(x) x * 100)]
   setnames(tab2, c("PERCENT", "STDERR"))
+  
+  z_alpha <- qt(p = 1 - alpha / 2, df = survey::degf(design) - 1)
   tab2[, LOWERCL := PERCENT - STDERR * z_alpha]
   tab2[, UPPERCL := PERCENT + STDERR * z_alpha]
   
@@ -179,11 +197,13 @@ analysis_2 <- function(x, alpha = 0.05) {
     TESTPCT = dat_ext_est[[x]][, EXTEST / sum(EXTEST) * 100],
     TESTSE  = dat_ext_est[[x]][, EXTSE  / sum(EXTEST) * 100]
   )
+  
+  z_alpha <- qt(p = 1 - alpha / 2, df = 1000)
   tab3[, TESTLOCL := TESTPCT - TESTSE * z_alpha]
   tab3[, TESTUPLC := TESTPCT + TESTSE * z_alpha]
   
   tab4 <- t_test_vs_external_estimate(
-    survey_design = da_finalwt_design,
+    survey_design = design,
     y_var = x,
     ext_ests = ext_ests[[x]],
     ext_std_errors = ext_std_errors[[x]]

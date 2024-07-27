@@ -5,6 +5,7 @@
 ## Options
 options(max.print = 10e3)
 options(openxlsx.numFmt = "0.0000")
+options(survey.replicates.mse = TRUE)
 
 ## Reset
 rm(list = ls())
@@ -252,6 +253,8 @@ tab_analysis_1_test <- map(
 ) |> rbindlist()
 t2 <- Sys.time()
 t2 - t1
+# Time difference of 5.030634 mins
+
 rm(t1, t2)
 
 tab_analysis_1_orig_melt <- melt.data.table(
@@ -285,8 +288,8 @@ setorder(tab_analysis_1_test_diff, test, TABLE, variable, VALUE)
 tab_analysis_1_test_diff
 
 tab_analysis_1_test_diff[is.na(value.orig) | is.na(value.test)]
-tab_analysis_1_test_diff[is.na(value.orig), value.orig := 0]
-tab_analysis_1_test_diff[is.na(value.test), value.test := 0]
+# tab_analysis_1_test_diff[is.na(value.orig), value.orig := 0]
+# tab_analysis_1_test_diff[is.na(value.test), value.test := 0]
 
 tab_analysis_1_test_diff[
   ,
