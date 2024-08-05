@@ -2,6 +2,8 @@
 
 ## Options
 options(max.print = 10e3)
+options(openxlsx.numFmt = "0.0000")
+options(survey.replicates.mse = TRUE)
 
 ## Reset
 rm(list = ls())
@@ -16,7 +18,6 @@ library(ggplot2)
 library(glue)
 
 ## Params
-
 alpha <- 0.05
 z_alpha <- qnorm(1 - alpha / 2)
 
@@ -56,7 +57,7 @@ names(dat_wif)
 # SPBWT: Sample person base weight
 # SPLNRWT: Sample person literacy-related nonresponse adjusted weight
 dat_sp_repwt <- haven::read_sas(
-  data_file = "analyses/data/qc_sp_repwt_lva.sas7bdat"
+  data_file = "Extended_NRBA_Analyses/data/qc_sp_repwt_lva.sas7bdat"
 ) |> setDT(key = "PERSID") |> setcolorder()
 names(dat_sp_repwt)
 # Remove variables overlapping with WIF
@@ -99,21 +100,23 @@ da[!is.na(CI_AGE), as.list(range(CI_AGE)), keyby = .(CI_AGE_CAT)]
 
 
 # Consorcium results
-tab_analysis_3_orig <- openxlsx2::read_xlsx(
-  file = "analyses/CY2_Extended_NRBA_Analyses_(without scores)_LVA.xlsx",
-  sheet = 3,
+tab_analysis_5a_orig <- openxlsx2::read_xlsx(
+  file = c(
+    "Extended_NRBA_Analyses/CY2_Extended_NRBA_Analyses_(with scores)_LVA.xlsx"
+  ),
+  sheet = "Analysis 5-BQ LRNR vs oth BQ NR",
   start_row = 4,
   skip_empty_cols = TRUE,
   skip_empty_rows = TRUE
 ) |> setDT()
 
 
-vars_analysis_3 <- unique(tab_analysis_3_orig$VARIABLE)
-all(vars_analysis_3 %in% names(da))
+vars_analysis_5a <- unique(tab_analysis_5a_orig$VARIABLE)
+all(vars_analysis_5a %in% names(da))
 
-da[, map(.SD, class), .SDcols = vars_analysis_3]
-da[, c(vars_analysis_3) := map(.SD, as.factor), .SDcols = vars_analysis_3]
-da[, map(.SD, class), .SDcols = vars_analysis_3]
+da[, map(.SD, class), .SDcols = vars_analysis_5a]
+da[, c(vars_analysis_5a) := map(.SD, as.factor), .SDcols = vars_analysis_5a]
+da[, map(.SD, class), .SDcols = vars_analysis_5a]
 
 
 da[, comp.group := NA_integer_]
@@ -122,7 +125,7 @@ da[DISP_CIBQ %in% c(1, 7, 8, 9, 18, 25) == 0, comp.group := 2L]
 da[, .N, keyby = .(comp.group)]
 
 map(
-  .x = vars_analysis_3,
+  .x = vars_analysis_5a,
   .f = \(x) da[!is.na(comp.group), .N, keyby = c("comp.group", x)]
 )
 
@@ -153,7 +156,7 @@ svymean(
   design = subset(da_allSP_design, comp.group == 2L)
 )
 
-analyses_3 <- function(x) {
+analyses_5a <- function(x) {
   
   # BQ Literacy-related NR
   tab1 <- svymean(
@@ -179,27 +182,27 @@ analyses_3 <- function(x) {
   
 }
 
-analyses_3(vars_analysis_3[1])
+analyses_5a(vars_analysis_5a[1])
 
-tab_analysis_3_test <- map(
-  .x = vars_analysis_3,
-  .f = analyses_3
+tab_analysis_5a_test <- map(
+  .x = vars_analysis_5a,
+  .f = analyses_5a
 ) |> rbindlist()
 
-tab_analysis_3_test[, VARIABLE := factor(
-  x = VARIABLE, levels = vars_analysis_3
+tab_analysis_5a_test[, VARIABLE := factor(
+  x = VARIABLE, levels = vars_analysis_5a
 )]
 
-tab_analysis_3_test[, VALUE := factor(VALUE)]
+tab_analysis_5a_test[, VALUE := factor(VALUE)]
 
-tab_analysis_3_test[, mean := mean * 100]
-tab_analysis_3_test[, SE := SE * 100]
+tab_analysis_5a_test[, mean := mean * 100]
+tab_analysis_5a_test[, SE := SE * 100]
 
-tab_analysis_3_test[, LOWERCL := mean - SE * z_alpha]
-tab_analysis_3_test[, UPPERCL := mean + SE * z_alpha]
+tab_analysis_5a_test[, LOWERCL := mean - SE * z_alpha]
+tab_analysis_5a_test[, UPPERCL := mean + SE * z_alpha]
 
 ggplot(
-  data = tab_analysis_3_test,
+  data = tab_analysis_5a_test,
   mapping = aes(
     x = VALUE, y = mean, ymin = LOWERCL, ymax = UPPERCL, fill = comp.group
   )
@@ -210,7 +213,7 @@ ggplot(
   facet_wrap(facets = vars(VARIABLE), scales = "free") +
   theme_bw() +
   ggtitle("ANALYSIS 5: BQ LRNR compared to other BQ NR")
-ggsave(filename = "analyses/plot3.pdf", scale = 2)
+ggsave(filename = "Extended_NRBA_Analyses/plot5a.pdf", scale = 2)
 
 
 comp.group <- NULL
@@ -232,7 +235,7 @@ svychisq(
 )
 
 map(
-  .x = vars_analysis_3,
+  .x = vars_analysis_5a,
   .f = \(x) {
     svychisq(
       formula = as.formula(glue("~{x} + comp.group")),

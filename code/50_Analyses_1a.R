@@ -4,6 +4,8 @@
 
 ## Options
 options(max.print = 10e3)
+options(openxlsx.numFmt = "0.0000")
+options(survey.replicates.mse = TRUE)
 
 ## Reset
 rm(list = ls())
@@ -44,9 +46,10 @@ names(dat_wif)
 # SPBWT: Sample person base weight
 # SPLNRWT: Sample person literacy-related nonresponse adjusted weight
 dat_sp_repwt <- haven::read_sas(
-  data_file = "analyses/data/qc_sp_repwt_lva.sas7bdat"
+  data_file = "Extended_NRBA_Analyses/data/qc_sp_repwt_lva.sas7bdat"
 ) |> setDT(key = "PERSID") |> setcolorder()
 names(dat_sp_repwt)
+
 # Remove variables overlapping with WIF
 x <- grep("WT0$", names(dat_sp_repwt), value = TRUE)
 dat_sp_repwt[, c(x) := NULL]
@@ -82,25 +85,6 @@ dat_nrba <- openxlsx2::read_xlsx(
 ) |> setDT(key = c("CNTRYID", "CASEID", "PERSID")) |> setcolorder()
 
 
-# ### External_Estimates_LVA
-# sheet_names <- openxlsx2::wb_load(
-#   file = "results/External_Estimates_LVA.xlsx"
-# ) |> openxlsx2::wb_get_sheet_names()
-# 
-# dat_ext_est <- purrr::map(
-#   .x = sheet_names,
-#   .f = \(x) {
-#     openxlsx2::read_xlsx(
-#       file = "results/External_Estimates_LVA.xlsx",
-#       sheet = x
-#     )
-#   }
-# )
-# 
-# length(dat_ext_est)
-# names(dat_ext_est)
-
-
 ## Combine
 key(dat_sdif)
 key(dat_wif)
@@ -119,6 +103,7 @@ da <- Reduce(f = merge, x = list(dat_sdif, dat_wif, dat_nrba)) |>
 setkeyv(da, key(dat_sdif)) |> setcolorder()
 key(da)
 names(da) |> first(10)
+
 
 
 # Age groups
@@ -178,17 +163,17 @@ da[
 
 
 ## Analysis 1 - Wgting Adjustments
-
-tab_analysis_1 <- openxlsx2::read_xlsx(
-  file = "analyses/CY2_Extended_NRBA_Analyses_(without scores)_LVA.xlsx",
-  sheet = 1,
+tab_analysis_1_orig <- openxlsx2::read_xlsx(
+  file = c(
+    "Extended_NRBA_Analyses/CY2_Extended_NRBA_Analyses_(with scores)_LVA.xlsx"
+  ),
+  sheet = "Analysis 1 - Wgting Adjustments",
   start_row = 4,
   skip_empty_rows = TRUE
 ) |> setDT()
 
 ### Data
-
-vars_analysis_1 <- unique(tab_analysis_1$VARIABLE)
+vars_analysis_1 <- unique(tab_analysis_1_orig$VARIABLE)
 all(vars_analysis_1 %in% names(da))
 
 da[, map(.SD, class), .SDcols = vars_analysis_1]
@@ -204,7 +189,6 @@ da_resp <- da[!is.na(PERSID) & WEIGHTFLG == 1]
 
 
 ### Designs
-
 grep("SPBWT[1-n]+", names(da_allSP), value = TRUE) |> length() == 80
 grep("SPLNRWT[1-n]+", names(da_allSP), value = TRUE) |> length() == 80
 
@@ -263,7 +247,7 @@ analysis_1 <- function(x, digits = 4, alpha = 0.05) {
     VARIABLE = outcome,
     VALUE = outcome_category,
     `NR Adj Weight Respondents (3)` = round(Adjusted_mean * 100, digits = digits),
-    `PROBF1 (1) v (3)` = round(p_value, digits = digits)
+    `PROBF2 (1) v (3)` = round(p_value, digits = digits)
   )]
   
   tab_t_test <- merge(
@@ -304,12 +288,12 @@ analysis_1("NRBAVAR2")
 # is.factor(da[["NRBAVAR1"]])
 
 tab_analysis_1_test <- map(
-  .x = unique(tab_analysis_1$VARIABLE),
+  .x = unique(tab_analysis_1_orig$VARIABLE),
   .f = analysis_1
 ) |> rbindlist()
 
-tab_analysis_1_melt <- melt.data.table(
-  data = tab_analysis_1,
+tab_analysis_1_orig_melt <- melt.data.table(
+  data = tab_analysis_1_orig,
   id.vars = c("VARIABLE", "LABEL", "VALUE")
 )
 
@@ -318,11 +302,11 @@ tab_analysis_1_test_melt <- melt.data.table(
   id.vars = c("VARIABLE", "VALUE")
 )
 
-tab_analysis_1_melt[, class(VALUE)]
+tab_analysis_1_orig_melt[, class(VALUE)]
 tab_analysis_1_test_melt[, class(VALUE)]
 
 tab_analysis_1_test_diff <- merge(
-  x = tab_analysis_1_melt,
+  x = tab_analysis_1_orig_melt,
   y = tab_analysis_1_test_melt,
   by = c("VARIABLE", "VALUE", "variable"),
   suffixes = c(".orig", ".test")
@@ -354,21 +338,21 @@ tab_analysis_1_test_diff[value.orig < 1][
   .(VARIABLE, VALUE, variable, value.orig, value.test)
 ] |> first(10)
 
-tab_analysis_1
+tab_analysis_1_orig
 
 
 # Significant differences are those with PROBF1 < Bonferroni Alpha. Bonferroni Alpha is calculated as alpha(0.05)/(number of categories).
 
-tab_analysis_1[, .N, keyby = .(sign = `PROBF1 (1) v (2)` < `Bonferroni Alpha`)]
+tab_analysis_1_orig[, .N, keyby = .(sign = `PROBF1 (1) v (2)` < `Bonferroni Alpha`)]
 tab_analysis_1_test[, .N, keyby = .(sign = `PROBF1 (1) v (2)` < `Bonferroni Alpha`)]
 
-tab_analysis_1[, .N, keyby = .(sign = `PROBF1 (1) v (3)` < `Bonferroni Alpha`)]
-tab_analysis_1_test[, .N, keyby = .(sign = `PROBF1 (1) v (3)` < `Bonferroni Alpha`)]
+tab_analysis_1_orig[, .N, keyby = .(sign = `PROBF2 (1) v (3)` < `Bonferroni Alpha`)]
+tab_analysis_1_test[, .N, keyby = .(sign = `PROBF2 (1) v (3)` < `Bonferroni Alpha`)]
 
 # Significant differences between the base-weighted estimates and all eligible SPs existed for all variables in the analysis
 # except Number of declared residents aged 16-65 and Indicator if a child (aged 0-14) is in a household.
 
-tab_analysis_1[
+tab_analysis_1_orig[
   ,
   mean(`PROBF1 (1) v (2)` < `Bonferroni Alpha`),
   keyby = .(VARIABLE, LABEL)
@@ -384,27 +368,27 @@ tab_analysis_1_test[
 
 # In general, the differences in the estimates are smaller after the nonresponse adjustment, indicating that the BQ nonresponse adjustment was effective in reducing the nonresponse bias in these estimates.
 
-tab_analysis_1[
+tab_analysis_1_orig[
   is.na(`Base Weight Respondents (2)`),
   `Base Weight Respondents (2)` := 0
 ]
-tab_analysis_1[
+tab_analysis_1_orig[
   is.na(`NR Adj Weight Respondents (3)`),
   `NR Adj Weight Respondents (3)` := 0
 ]
 
-tab_analysis_1[
+tab_analysis_1_orig[
   ,
   diff1 := abs(`Base Weight All Eligible SPs (1)` - `Base Weight Respondents (2)`),
 ]
 
-tab_analysis_1[
+tab_analysis_1_orig[
   ,
   diff2 := abs(`Base Weight All Eligible SPs (1)` - `NR Adj Weight Respondents (3)`),
 ]
 
-tab_analysis_1[, map(.SD, mean), .SDcols = patterns("diff")]
-tab_analysis_1[
+tab_analysis_1_orig[, map(.SD, mean), .SDcols = patterns("diff")]
+tab_analysis_1_orig[
   ,
   map(.SD, mean), .SDcols = patterns("diff"),
   keyby = .(VARIABLE)
@@ -437,21 +421,21 @@ tab_analysis_1_test[
 # Share of one person households by JURISDICTION and cities,
 # Unemployment level in age group 15-64 by JURISDICTION and cities.
 
-tab_analysis_1[, .N, keyby = .(sign = `PROBF1 (1) v (3)` < `Bonferroni Alpha`)]
-tab_analysis_1_test[, .N, keyby = .(sign = `PROBF1 (1) v (3)` < `Bonferroni Alpha`)]
+tab_analysis_1_orig[, .N, keyby = .(sign = `PROBF2 (1) v (3)` < `Bonferroni Alpha`)]
+tab_analysis_1_test[, .N, keyby = .(sign = `PROBF2 (1) v (3)` < `Bonferroni Alpha`)]
 
-tab_analysis_1[
-  `PROBF1 (1) v (3)` < `Bonferroni Alpha`,
+tab_analysis_1_orig[
+  `PROBF2 (1) v (3)` < `Bonferroni Alpha`,
   .(VARIABLE, LABEL, `NR Adj Weight Respondents (3)`)
 ][order(-`NR Adj Weight Respondents (3)`)]
 
-tab_analysis_1[
-  `PROBF1 (1) v (3)` < `Bonferroni Alpha`,
+tab_analysis_1_orig[
+  `PROBF2 (1) v (3)` < `Bonferroni Alpha`,
   .(VARIABLE, `NR Adj Weight Respondents (3)`)
 ][order(-`NR Adj Weight Respondents (3)`)]
 
 tab_analysis_1_test[
-  `PROBF1 (1) v (3)` < `Bonferroni Alpha`,
+  `PROBF2 (1) v (3)` < `Bonferroni Alpha`,
   .(VARIABLE, `NR Adj Weight Respondents (3)`)
 ][order(-`NR Adj Weight Respondents (3)`)]
 

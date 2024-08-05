@@ -239,8 +239,10 @@ tab_analysis_2_test[, VALUE := as.integer(VALUE)]
 
 
 tab_analysis_2_orig <- openxlsx2::read_xlsx(
-  file = "analyses/CY2_Extended_NRBA_Analyses_(without scores)_LVA.xlsx",
-  sheet = 2,
+  file = c(
+    "Extended_NRBA_Analyses/CY2_Extended_NRBA_Analyses_(with scores)_LVA.xlsx"
+  ),
+  sheet = "Analysis 2 - External Estimates",
   start_row = 3,
   cols = 1:16,
   skip_empty_rows = TRUE
@@ -298,7 +300,7 @@ setorder(tab_analysis_2, VARIABLE, variable, VALUE)
 
 openxlsx::write.xlsx(
   x = tab_analysis_2,
-  file = "analyses/LVA_NRBA_ANALYSIS_2_test.xlsx",
+  file = "Extended_NRBA_Analyses/LVA_NRBA_ANALYSIS_2_test.xlsx",
   firstRow = TRUE,
   colWidths = 20
 )

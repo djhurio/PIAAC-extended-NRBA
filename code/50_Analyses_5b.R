@@ -2,6 +2,8 @@
 
 ## Options
 options(max.print = 10e3)
+options(openxlsx.numFmt = "0.0000")
+options(survey.replicates.mse = TRUE)
 
 ## Reset
 rm(list = ls())
@@ -42,15 +44,10 @@ dat_wif <- haven::read_sas(
   unique(by = c("CNTRYID", "CASEID"))
 names(dat_wif)
 
-# ### SPRWT0
-# dat_sprwt <- haven::read_sas(
-#   data_file = "../PIAAC-data-2023/data-weights/sprwt.sas7bdat"
-# ) |> setDT()
-
 # hh_repwt
 # HHUEWT: Screener unknown eligibility adjusted weight
 dat_hh_repwt <- haven::read_sas(
-  data_file = "analyses/data/qc_hh_repwt_lva.sas7bdat"
+  data_file = "Extended_NRBA_Analyses/data/qc_hh_repwt_lva.sas7bdat"
 ) |> setDT(key = "CASEID") |> setcolorder()
 names(dat_hh_repwt)
 # Remove variables overlapping with WIF
@@ -97,21 +94,23 @@ names(da) |> first(10)
 
 
 # Consorcium results
-tab_analysis_4_orig <- openxlsx2::read_xlsx(
-  file = "analyses/CY2_Extended_NRBA_Analyses_(without scores)_LVA.xlsx",
-  sheet = 4,
+tab_analysis_5b_orig <- openxlsx2::read_xlsx(
+  file = c(
+    "Extended_NRBA_Analyses/CY2_Extended_NRBA_Analyses_(with scores)_LVA.xlsx"
+  ),
+  sheet = "Analysis5-SCR LRNR vs oth SCRNR",
   start_row = 4,
   skip_empty_cols = TRUE,
   skip_empty_rows = TRUE
 ) |> setDT()
 
 
-vars_analysis_4 <- unique(tab_analysis_4_orig$VARIABLE)
-all(vars_analysis_4 %in% names(da))
+vars_analysis_5b <- unique(tab_analysis_5b_orig$VARIABLE)
+all(vars_analysis_5b %in% names(da))
 
-da[, map(.SD, class), .SDcols = vars_analysis_4]
-da[, c(vars_analysis_4) := map(.SD, as.factor), .SDcols = vars_analysis_4]
-da[, map(.SD, class), .SDcols = vars_analysis_4]
+da[, map(.SD, class), .SDcols = vars_analysis_5b]
+da[, c(vars_analysis_5b) := map(.SD, as.factor), .SDcols = vars_analysis_5b]
+da[, map(.SD, class), .SDcols = vars_analysis_5b]
 
 
 da[, comp.group := NA_integer_]
@@ -121,7 +120,7 @@ da[, .N, keyby = .(comp.group)]
 da[, .N, keyby = .(DISP_SCR, comp.group)]
 
 map(
-  .x = vars_analysis_4,
+  .x = vars_analysis_5b,
   .f = \(x) da[!is.na(comp.group), .N, keyby = c("comp.group", x)]
 )
 
@@ -147,7 +146,7 @@ svymean(
   design = subset(da_allHH_design, comp.group == 2L)
 )
 
-analyses_4 <- function(x) {
+analyses_5b <- function(x) {
   
   # Literacy-related NR
   tab1 <- svymean(
@@ -173,21 +172,21 @@ analyses_4 <- function(x) {
   
 }
 
-analyses_4(vars_analysis_4[1])
+analyses_5b(vars_analysis_5b[1])
 
-tab_analysis_4_test <- map(
-  .x = vars_analysis_4,
-  .f = analyses_4
+tab_analysis_5b_test <- map(
+  .x = vars_analysis_5b,
+  .f = analyses_5b
 ) |> rbindlist()
 
-tab_analysis_4_test[, mean := mean * 100]
-tab_analysis_4_test[, SE := SE * 100]
+tab_analysis_5b_test[, mean := mean * 100]
+tab_analysis_5b_test[, SE := SE * 100]
 
-tab_analysis_4_test[, LOWERCL := mean - SE * z_alpha]
-tab_analysis_4_test[, UPPERCL := mean + SE * z_alpha]
+tab_analysis_5b_test[, LOWERCL := mean - SE * z_alpha]
+tab_analysis_5b_test[, UPPERCL := mean + SE * z_alpha]
 
 ggplot(
-  data = tab_analysis_4_test,
+  data = tab_analysis_5b_test,
   mapping = aes(
     x = VALUE, y = mean, ymin = LOWERCL, ymax = UPPERCL, fill = comp.group
   )
@@ -198,7 +197,7 @@ ggplot(
   facet_wrap(facets = vars(VARIABLE), scales = "free") +
   theme_bw() +
   ggtitle("ANALYSIS 5: SCR LRNR compared to other SCR NR")
-ggsave(filename = "analyses/plot4.pdf", scale = 2)
+ggsave(filename = "Extended_NRBA_Analyses/plot5b.pdf", scale = 2)
 
 
 comp.group <- NULL
@@ -215,7 +214,7 @@ da_allHH_design_comp <- update(
 
 # chi-square test
 map(
-  .x = vars_analysis_4,
+  .x = vars_analysis_5b,
   .f = \(x) {
     svychisq(
       formula = as.formula(glue("~{x} + comp.group")),
