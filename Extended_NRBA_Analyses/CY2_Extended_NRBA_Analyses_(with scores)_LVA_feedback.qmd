@@ -222,7 +222,7 @@ This analysis shows the cumulative mean proficiency scores by the number of cont
 
 ### Comments by LVA
 
-I agree with your conclusions. Please add entry with 15 contact attempts in the table and plot.
+I agree with your conclusions. Please add entry with 15 contact attempts (`CONTACTTOTAL=14`) in the table and plot.
 
 
 
@@ -235,16 +235,4 @@ This analysis looks at how the mean proficiency score would vary based on differ
 
 ### Comments by LVA
 
-I do not know where to get the variable `BQ_STAT` which is required for this calculation.
-
-```
-  dplyr::mutate(
-    BQ_CELL_COMBINED = ifelse(
-      (BQ_STAT == 3 & !(DISP_CIBQ %in% c(18, 25))),
-      SPLNRCELL + 900,
-      SPNRCELL
-    ),
-    # create base weights
-    THEOR_PBWT_NEW = THEOR_HBWT / PROB_PERS
-  )
-```
+I confirm your calculations.
